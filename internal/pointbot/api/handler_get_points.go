@@ -12,7 +12,7 @@ import (
 func GetTopPointHandler(storageReqChannel chan<- pointbot.StorageRequest) gin.HandlerFunc {
 	type apiResponse struct {
 		Username string `json:"user"`
-		Points   int    `json:"points"`
+		Points   int64  `json:"points"`
 	}
 	return func(c *gin.Context) {
 		replyChan := make(chan pointbot.StorageResponse)

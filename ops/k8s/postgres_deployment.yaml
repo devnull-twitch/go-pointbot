@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pointbotdb
+  labels:
+    app: pointbot
+spec:
+  selector:
+    matchLabels:
+      app: pointbot
+      block: postgres
+  template:
+    metadata:
+      labels:
+        app: pointbot
+        block: postgres
+    spec:
+      containers:
+        -
+          name: pointbotdb
+          image: postgres:14-alpine
+          ports:
+            - containerPort: 5432
+          env:
+            -
+              name: POSTGRES_USER
+              value: pointbot
+            -
+              name: POSTGRES_PASSWORD
+              value: pointbot
+          volumeMounts:
+            -
+              mountPath: "/var/lib/postgresql/data"
+              subPath: data
+              name: dbdata
+      volumes:
+        - 
+          name: dbdata
+          persistentVolumeClaim:
+            claimName: pointbotdb-pvc

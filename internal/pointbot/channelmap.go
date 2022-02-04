@@ -1,10 +1,11 @@
 package pointbot
 
 import (
+	"context"
 	"fmt"
-	"sort"
 	"time"
 
+	"github.com/jackc/pgx/v4"
 	"github.com/sirupsen/logrus"
 )
 
@@ -13,7 +14,7 @@ type (
 	StorageResponse struct {
 		ChannelName string
 		Username    string
-		Points      int
+		Points      int64
 	}
 	StorageRequest struct {
 		Action      Action
@@ -28,8 +29,7 @@ type (
 		Points map[string]int
 	}
 	Storage struct {
-		channelStorage  map[string]*channelBlock
-		channelTokenMap map[string]string
+		conn *pgx.Conn
 	}
 )
 
@@ -41,44 +41,74 @@ const (
 	ActionSubPoints
 	ActionTop
 	ActionList
+	ActionChannels
 )
 
-func NewStorage() chan<- StorageRequest {
+func NewStorage(conn *pgx.Conn) chan<- StorageRequest {
 	requestChan := make(chan StorageRequest)
 	go func(reqs <-chan StorageRequest) {
 		s := &Storage{
-			channelStorage:  make(map[string]*channelBlock),
-			channelTokenMap: make(map[string]string),
+			conn: conn,
 		}
 
 		for {
 			req := <-reqs
 
-			if req.Token == "" && req.ChannelName != "" {
-				req.Token = s.channelTokenMap[req.ChannelName]
-			}
-
 			switch req.Action {
 			case ActionJoin:
 				s.AddChannel(req.Token, req.ChannelName)
 
+			case ActionChannels:
+				resps := s.ListChannels()
+				if len(resps) <= 0 {
+					close(req.ReplyChan)
+					return
+				}
+
+				for _, r := range resps {
+					select {
+					case req.ReplyChan <- r:
+					case <-time.After(time.Second):
+						logrus.Warn("channel didnt take response")
+						return
+					}
+				}
+
+				close(req.ReplyChan)
+
 			case ActionAddPoints:
-				if err := s.AddPoints(req.Token, req.Username, req.Points); err != nil {
+				cid, ok := s.getChannelId(req)
+				if !ok {
+					continue
+				}
+				if err := s.AddPoints(cid, req.Username, req.Points); err != nil {
 					logrus.WithError(err).Error("unable to add points")
 				}
 
 			case ActionDelPoints:
-				if err := s.DeletePoints(req.Token, req.Username); err != nil {
+				cid, ok := s.getChannelId(req)
+				if !ok {
+					continue
+				}
+				if err := s.DeletePoints(cid, req.Username); err != nil {
 					logrus.WithError(err).Error("unable to delete points")
 				}
 
 			case ActionSubPoints:
-				if err := s.AddPoints(req.Token, req.Username, -req.Points); err != nil {
+				cid, ok := s.getChannelId(req)
+				if !ok {
+					continue
+				}
+				if err := s.AddPoints(cid, req.Username, -req.Points); err != nil {
 					logrus.WithError(err).Error("unable to subtract points")
 				}
 
 			case ActionGetPoints:
-				points := s.GetPoints(req.Token, req.Username)
+				cid, ok := s.getChannelId(req)
+				if !ok {
+					continue
+				}
+				points := s.GetPoints(cid, req.Username)
 				select {
 				case req.ReplyChan <- StorageResponse{Username: req.Username, ChannelName: req.ChannelName, Points: points}:
 				case <-time.After(time.Second):
@@ -86,7 +116,11 @@ func NewStorage() chan<- StorageRequest {
 				}
 
 			case ActionTop:
-				resps := s.ListPoints(req.Token, 1)
+				cid, ok := s.getChannelId(req)
+				if !ok {
+					continue
+				}
+				resps := s.ListPoints(cid, 1)
 				if len(resps) <= 0 {
 					req.ReplyChan <- StorageResponse{}
 					return
@@ -99,7 +133,11 @@ func NewStorage() chan<- StorageRequest {
 				}
 
 			case ActionList:
-				resps := s.ListPoints(req.Token, 10)
+				cid, ok := s.getChannelId(req)
+				if !ok {
+					continue
+				}
+				resps := s.ListPoints(cid, 10)
 				if len(resps) <= 0 {
 					req.ReplyChan <- StorageResponse{}
 					return
@@ -122,76 +160,149 @@ func NewStorage() chan<- StorageRequest {
 	return requestChan
 }
 
-func (s *Storage) AddChannel(token, channel string) {
-	s.channelStorage[token] = &channelBlock{
-		Name:   channel,
-		Points: make(map[string]int),
+func (s *Storage) getChannelIdByToken(token string) (int64, error) {
+	channelrow := s.conn.QueryRow(context.Background(), "SELECT id FROM channels WHERE token = $1", token)
+	var channelID int64
+	if err := channelrow.Scan(&channelID); err != nil {
+		return 0, fmt.Errorf("unable to load channel ID: %w", err)
 	}
-	s.channelTokenMap[channel] = token
+
+	return channelID, nil
 }
 
-func (s *Storage) AddPoints(token, user string, points int) error {
-	channel, exists := s.channelStorage[token]
-	if !exists {
-		return fmt.Errorf("token not found")
+func (s *Storage) getChannelIdByName(channelName string) (int64, error) {
+	channelrow := s.conn.QueryRow(context.Background(), "SELECT id FROM channels WHERE channel_name = $1", channelName)
+	var channelID int64
+	if err := channelrow.Scan(&channelID); err != nil {
+		return 0, fmt.Errorf("unable to load channel ID: %w", err)
 	}
 
-	channel.Points[user] += points
+	return channelID, nil
+}
+
+func (s *Storage) getChannelId(req StorageRequest) (int64, bool) {
+	if req.Token == "" && req.ChannelName != "" {
+		cid, err := s.getChannelIdByName(req.ChannelName)
+		if err != nil {
+			logrus.WithFields(logrus.Fields{
+				"error": err,
+				"name":  req.ChannelName,
+				"token": req.Token,
+			}).Warn("unable to load channel ID")
+			return 0, false
+		}
+
+		return cid, true
+	}
+
+	cid, err := s.getChannelIdByToken(req.ChannelName)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"error": err,
+			"name":  req.ChannelName,
+			"token": req.Token,
+		}).Warn("unable to load channel ID")
+		return 0, false
+	}
+
+	return cid, true
+}
+
+func (s *Storage) AddChannel(token, channel string) {
+	_, err := s.conn.Exec(context.Background(), "INSERT INTO channels (channel_name, token) VALUES ($1, $2)", channel, token)
+	if err != nil {
+		logrus.WithError(err).Error("unable to add channel to list")
+	}
+}
+
+func (s *Storage) ListChannels() []StorageResponse {
+	channelRows, err := s.conn.Query(context.Background(), "SELECT channel_name FROM channels")
+	if err != nil {
+		logrus.WithError(err).Error("unable to load channels")
+		return []StorageResponse{}
+	}
+
+	response := make([]StorageResponse, 0, 50)
+	for channelRows.Next() {
+		var channelName string
+		channelRows.Scan(&channelName)
+		response = append(response, StorageResponse{
+			ChannelName: channelName,
+		})
+	}
+
+	return response
+}
+
+func (s *Storage) AddPoints(cid int64, user string, points int) error {
+	_, err := s.conn.Exec(
+		context.Background(),
+		`INSERT INTO users (channel_id, username, points) VALUES ($1, lower($2), $3) 
+		ON CONFLICT ON CONSTRAINT unique_user_in_channel
+			DO UPDATE SET points = users.points + $3, last_activity = current_timestamp`,
+		cid, user, points,
+	)
+	if err != nil {
+		return fmt.Errorf("unable to set channel points: %w", err)
+	}
+
 	logrus.WithFields(logrus.Fields{
-		"channel":      channel.Name,
+		"cid":          cid,
 		"user":         user,
-		"total_points": channel.Points[user],
 		"added_points": points,
 	}).Info("adding points")
 	return nil
 }
 
-func (s *Storage) DeletePoints(token, user string) error {
-	channel, exists := s.channelStorage[token]
-	if !exists {
-		return fmt.Errorf("token not found")
+func (s *Storage) DeletePoints(channelID int64, user string) error {
+	_, err := s.conn.Exec(context.Background(), "DELETE FROM users WHERE channel_id = $1 AND username = lower($2)", channelID, user)
+	if err != nil {
+		return fmt.Errorf("unable to delete user data: %w", err)
 	}
-
-	delete(channel.Points, user)
 	logrus.WithFields(logrus.Fields{
-		"channel": channel.Name,
-		"user":    user,
+		"cid":  channelID,
+		"user": user,
 	}).Info("deleting user data")
 	return nil
 }
 
-func (s *Storage) GetPoints(token, user string) int {
-	channel, exists := s.channelStorage[token]
-	if !exists {
-		logrus.Error("bot is in channel but also not")
+func (s *Storage) GetPoints(cid int64, user string) int64 {
+	row := s.conn.QueryRow(context.Background(), "SELECT points FROM users WHERE channel_id = $1 AND username = lower($2)", cid, user)
+	var points int64
+	if err := row.Scan(&points); err != nil {
+		logrus.WithError(err).Warn("unable to load user points")
 		return 0
 	}
 
-	return channel.Points[user]
+	return points
 }
 
-func (s *Storage) ListPoints(token string, limit int) []StorageResponse {
-	channel, exists := s.channelStorage[token]
-	if !exists {
-		logrus.Error("bot is in channel but also not")
-		return nil
+func (s *Storage) ListPoints(cid int64, limit int) []StorageResponse {
+	channelRow := s.conn.QueryRow(context.Background(), "SELECT channel_name FROM channels WHERE id = $1", cid)
+	var channelName string
+	if err := channelRow.Scan(&channelName); err != nil {
+		logrus.WithError(err).Error("unable to load channel name")
+		return []StorageResponse{}
 	}
 
-	response := make([]StorageResponse, 0, len(channel.Points))
-	for user, points := range channel.Points {
+	userRows, err := s.conn.Query(context.Background(), "SELECT username, points FROM users WHERE channel_id = $1 ORDER BY points DESC LIMIT $2", cid, limit)
+	if err != nil {
+		logrus.WithError(err).Error("unable to load user data")
+		return []StorageResponse{}
+	}
+
+	response := make([]StorageResponse, 0, limit)
+	for userRows.Next() {
+		var (
+			username string
+			points   int64
+		)
+		userRows.Scan(&username, &points)
 		response = append(response, StorageResponse{
-			ChannelName: channel.Name,
-			Username:    user,
+			ChannelName: channelName,
+			Username:    username,
 			Points:      points,
 		})
-	}
-
-	sort.Slice(response, func(i, j int) bool {
-		return response[i].Points > response[j].Points
-	})
-
-	if len(response) > limit {
-		return response[0:limit]
 	}
 
 	return response

@@ -1,1 +1,3 @@
+/netrc
 .env.yaml
+ops/tern.k8s.conf
