@@ -1,4 +1,4 @@
--- This is a sample migration.
+-- Create user database
 
 create table users (
   id serial primary key,

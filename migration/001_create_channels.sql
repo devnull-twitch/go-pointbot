@@ -1,4 +1,4 @@
--- This is a sample migration.
+-- Create channel database
 
 create table channels (
   id serial primary key,
