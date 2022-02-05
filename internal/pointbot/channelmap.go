@@ -66,7 +66,7 @@ func NewStorage(conn *pgx.Conn) chan<- StorageRequest {
 				resps := s.ListChannels()
 				if len(resps) <= 0 {
 					close(req.ReplyChan)
-					return
+					continue
 				}
 
 				for _, r := range resps {
@@ -74,7 +74,7 @@ func NewStorage(conn *pgx.Conn) chan<- StorageRequest {
 					case req.ReplyChan <- r:
 					case <-time.After(time.Second):
 						logrus.Warn("channel didnt take response")
-						return
+						continue
 					}
 				}
 
@@ -127,7 +127,7 @@ func NewStorage(conn *pgx.Conn) chan<- StorageRequest {
 				resps := s.ListPoints(cid, 1)
 				if len(resps) <= 0 {
 					req.ReplyChan <- StorageResponse{}
-					return
+					continue
 				}
 
 				select {
@@ -143,8 +143,8 @@ func NewStorage(conn *pgx.Conn) chan<- StorageRequest {
 				}
 				resps := s.ListPoints(cid, 10)
 				if len(resps) <= 0 {
-					req.ReplyChan <- StorageResponse{}
-					return
+					close(req.ReplyChan)
+					continue
 				}
 
 				for _, r := range resps {
@@ -152,7 +152,7 @@ func NewStorage(conn *pgx.Conn) chan<- StorageRequest {
 					case req.ReplyChan <- r:
 					case <-time.After(time.Second):
 						logrus.WithField("channel", req.ChannelName).Warn("bot didnt take response")
-						return
+						continue
 					}
 				}
 
