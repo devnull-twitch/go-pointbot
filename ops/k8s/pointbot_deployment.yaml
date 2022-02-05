@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pointbot
+  labels:
+    app: pointbot
+
+spec:
+  selector:
+    matchLabels:
+      app: pointbot
+      block: app
+  template:
+    metadata:
+      labels:
+        app: pointbot
+        block: app
+    spec:
+      containers:
+        - 
+          name: pointbot
+          image: ghcr.io/devnull-twitch/pointbot:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8085
+          env:
+            -
+              name: USERNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: pointbot-config
+                  key: bot.username
+            -
+              name: TOKEN
+              valueFrom:
+                configMapKeyRef:
+                  name: pointbot-config
+                  key: bot.token
+            -
+              name: COMMAND_MARK
+              valueFrom:
+                configMapKeyRef:
+                  name: pointbot-config
+                  key: bot.command_mark
+            -
+              name: DATABASE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: pointbot-config
+                  key: database.url
+            -
+              name: GIN_MODE
+              value: release
+      imagePullSecrets:
+        - name: dockerconfigjson-ghcr

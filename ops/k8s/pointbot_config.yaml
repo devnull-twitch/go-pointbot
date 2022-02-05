@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pointbot-config
+data:
+  bot.username: "my_bot_name"
+  bot.token: "change_me_after_deploy"
+  bot.command_mark: "!"
+  database.url: "postgres://localhost:5432/pointbot"
