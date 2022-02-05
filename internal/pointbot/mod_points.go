@@ -2,6 +2,7 @@ package pointbot
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 	"time"
 
@@ -13,15 +14,24 @@ type pointModule struct {
 	storageReqChannel chan<- StorageRequest
 }
 
-func (p *pointModule) ExternalTrigger(client *tmi.Client) <-chan *tmi.ModuleArgs {
+func (pm *pointModule) ExternalTrigger(client *tmi.Client) <-chan *tmi.ModuleArgs {
 	return nil
 }
 
-func (p *pointModule) MessageTrigger(client *tmi.Client, incoming *tmi.IncomingMessage) *tmi.ModuleArgs {
+func (pm *pointModule) MessageTrigger(client *tmi.Client, incoming *tmi.IncomingMessage) *tmi.ModuleArgs {
+	if incoming.Message[0:1] == os.Getenv("COMMAND_MARK") {
+		return nil
+	}
+
+	pm.storageReqChannel <- StorageRequest{
+		Action:      ActionChatBasePoint,
+		ChannelName: incoming.Channel,
+		Username:    incoming.Username,
+	}
 	return nil
 }
 
-func (p *pointModule) Handler(client *tmi.Client, args tmi.ModuleArgs) *tmi.OutgoingMessage {
+func (pm *pointModule) Handler(client *tmi.Client, args tmi.ModuleArgs) *tmi.OutgoingMessage {
 	return nil
 }
 

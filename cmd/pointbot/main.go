@@ -32,6 +32,7 @@ func main() {
 	pm := pointbot.PointModule(storageReqChannel)
 	bot.AddModule(pm)
 	bot.AddModuleCommand(pm, pointbot.PointModuleCommand())
+	bot.AddModuleCommand(pm, pointbot.PPCConfigModuleCommand())
 
 	bot.AddCommand(pointbot.DemoCmd())
 	bot.AfterStartup(func() {

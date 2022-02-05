@@ -38,6 +38,8 @@ const (
 	ActionTop
 	ActionList
 	ActionChannels
+	ActionChatBasePoint
+	ActionSetPPC
 )
 
 func NewStorage(conn *pgx.Conn) chan<- StorageRequest {
@@ -153,6 +155,24 @@ func NewStorage(conn *pgx.Conn) chan<- StorageRequest {
 				}
 
 				close(req.ReplyChan)
+
+			case ActionChatBasePoint:
+				cid, ok := s.getChannelId(req)
+				if !ok {
+					continue
+				}
+				if err := s.AddPPC(cid, req.Username); err != nil {
+					logrus.WithError(err).Error("unable to add PPC")
+				}
+
+			case ActionSetPPC:
+				cid, ok := s.getChannelId(req)
+				if !ok {
+					continue
+				}
+				if err := s.SetChannelPPC(cid, req.Points); err != nil {
+					logrus.WithError(err).Error("unable to set PPC")
+				}
 			}
 		}
 	}(requestChan)
@@ -306,4 +326,21 @@ func (s *Storage) ListPoints(cid int64, limit int) []StorageResponse {
 	}
 
 	return response
+}
+
+func (s *Storage) AddPPC(cid int64, username string) error {
+	_, err := s.conn.Exec(
+		context.Background(),
+		"UPDATE users SET points = points + points_per_chat FROM channels WHERE channels.id = $1 AND users.channel_id = $1 AND users.username = $2",
+		cid,
+		username,
+	)
+	if err != nil {
+		return fmt.Errorf("unable to delete user data: %w", err)
+	}
+	logrus.WithFields(logrus.Fields{
+		"cid":  cid,
+		"user": username,
+	}).Debug("add PPC")
+	return nil
 }
