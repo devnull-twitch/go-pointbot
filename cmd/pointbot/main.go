@@ -29,8 +29,11 @@ func main() {
 
 	storageReqChannel := pointbot.NewStorage(conn)
 
+	pm := pointbot.PointModule(storageReqChannel)
+	bot.AddModule(pm)
+	bot.AddModuleCommand(pm, pointbot.PointModuleCommand())
+
 	bot.AddCommand(pointbot.DemoCmd())
-	bot.AddCommand(pointbot.ShowPoints(storageReqChannel))
 	bot.AfterStartup(func() {
 		channelReply := make(chan pointbot.StorageResponse)
 		storageReqChannel <- pointbot.StorageRequest{

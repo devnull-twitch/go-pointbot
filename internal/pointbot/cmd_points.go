@@ -9,48 +9,76 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func ShowPoints(storageReqChannel chan<- StorageRequest) tmi.Command {
-	return tmi.Command{
-		Name:        "points",
-		Description: "Interact with points",
-		Params: []tmi.Parameter{
-			{Name: "sub"},
-			{Name: "user"},
-			{Name: "points"},
-		},
-		Handler: func(client *tmi.Client, args tmi.CommandArgs) *tmi.OutgoingMessage {
+type pointModule struct {
+	storageReqChannel chan<- StorageRequest
+}
+
+func (p *pointModule) ExternalTrigger(client *tmi.Client) <-chan *tmi.ModuleArgs {
+	return nil
+}
+
+func (p *pointModule) MessageTrigger(client *tmi.Client, incoming *tmi.IncomingMessage) *tmi.ModuleArgs {
+	return nil
+}
+
+func (p *pointModule) Handler(client *tmi.Client, args tmi.ModuleArgs) *tmi.OutgoingMessage {
+	return nil
+}
+
+func PointModule(storageReqChannel chan<- StorageRequest) tmi.Module {
+	return &pointModule{
+		storageReqChannel: storageReqChannel,
+	}
+}
+
+func PointModuleCommand() tmi.ModuleCommand {
+	return tmi.ModuleCommand{
+		ModuleCommandHandler: func(client *tmi.Client, m tmi.Module, args tmi.CommandArgs) *tmi.OutgoingMessage {
+			pm := m.(*pointModule)
 			if args.Parameters["sub"] != "" {
-				if args.UserIsBroadcasterOrMod {
+				if args.Mod || args.Broadcaster {
 					switch args.Parameters["sub"] {
 					case "add":
-						return addPoints(storageReqChannel, args.Channel, args.Parameters["user"], args.Parameters["points"])
+						return pm.addPoints(args.Channel, args.Parameters["user"], args.Parameters["points"])
 					case "get":
-						return getPoints(storageReqChannel, args.Channel, args.Parameters["user"])
+						return pm.getPoints(args.Channel, args.Parameters["user"])
 					case "del":
-						return delPoints(storageReqChannel, args.Channel, args.Parameters["user"])
+						return pm.delPoints(args.Channel, args.Parameters["user"])
 					case "sub":
-						return subPoints(storageReqChannel, args.Channel, args.Parameters["user"], args.Parameters["points"])
+						return pm.subPoints(args.Channel, args.Parameters["user"], args.Parameters["points"])
+					case "reward":
+						// user param is points here because username is "@username" at the start
+						return pm.addPoints(args.Channel, args.ReplyUsername, args.Parameters["user"])
 					}
 				}
 
 				switch args.Parameters["sub"] {
 				case "top":
-					return topPoints(storageReqChannel, args.Channel)
+					return pm.topPoints(args.Channel)
 				}
 
-				return nil
+				return &tmi.OutgoingMessage{Message: "Unknown sub command"}
 			}
 
-			return getPoints(storageReqChannel, args.Channel, args.Username)
+			return pm.getPoints(args.Channel, args.Username)
+		},
+		Command: tmi.Command{
+			Name:        "points",
+			Description: "Interact with points",
+			Params: []tmi.Parameter{
+				{Name: "sub"},
+				{Name: "user"},
+				{Name: "points"},
+			},
 		},
 	}
 }
 
-func getPoints(stoargeReqChannel chan<- StorageRequest, channel, username string) *tmi.OutgoingMessage {
+func (pm *pointModule) getPoints(channel, username string) *tmi.OutgoingMessage {
 	replychan := make(chan StorageResponse)
 
 	select {
-	case stoargeReqChannel <- StorageRequest{
+	case pm.storageReqChannel <- StorageRequest{
 		Action:      ActionGetPoints,
 		ChannelName: channel,
 		Username:    username,
@@ -74,7 +102,7 @@ func getPoints(stoargeReqChannel chan<- StorageRequest, channel, username string
 	}
 }
 
-func addPoints(stoargeReqChannel chan<- StorageRequest, channel, username, strPoints string) *tmi.OutgoingMessage {
+func (pm *pointModule) addPoints(channel, username, strPoints string) *tmi.OutgoingMessage {
 	points, err := strconv.Atoi(strPoints)
 	if err != nil {
 		return &tmi.OutgoingMessage{
@@ -82,7 +110,7 @@ func addPoints(stoargeReqChannel chan<- StorageRequest, channel, username, strPo
 		}
 	}
 	select {
-	case stoargeReqChannel <- StorageRequest{
+	case pm.storageReqChannel <- StorageRequest{
 		Action:      ActionAddPoints,
 		ChannelName: channel,
 		Username:    username,
@@ -97,7 +125,7 @@ func addPoints(stoargeReqChannel chan<- StorageRequest, channel, username, strPo
 	}
 }
 
-func subPoints(stoargeReqChannel chan<- StorageRequest, channel, username, strPoints string) *tmi.OutgoingMessage {
+func (pm *pointModule) subPoints(channel, username, strPoints string) *tmi.OutgoingMessage {
 	points, err := strconv.Atoi(strPoints)
 	if err != nil {
 		return &tmi.OutgoingMessage{
@@ -105,7 +133,7 @@ func subPoints(stoargeReqChannel chan<- StorageRequest, channel, username, strPo
 		}
 	}
 	select {
-	case stoargeReqChannel <- StorageRequest{
+	case pm.storageReqChannel <- StorageRequest{
 		Action:      ActionSubPoints,
 		ChannelName: channel,
 		Username:    username,
@@ -120,9 +148,9 @@ func subPoints(stoargeReqChannel chan<- StorageRequest, channel, username, strPo
 	}
 }
 
-func delPoints(stoargeReqChannel chan<- StorageRequest, channel, username string) *tmi.OutgoingMessage {
+func (pm *pointModule) delPoints(channel, username string) *tmi.OutgoingMessage {
 	select {
-	case stoargeReqChannel <- StorageRequest{
+	case pm.storageReqChannel <- StorageRequest{
 		Action:      ActionDelPoints,
 		ChannelName: channel,
 		Username:    username,
@@ -136,11 +164,11 @@ func delPoints(stoargeReqChannel chan<- StorageRequest, channel, username string
 	}
 }
 
-func topPoints(stoargeReqChannel chan<- StorageRequest, channel string) *tmi.OutgoingMessage {
+func (pm *pointModule) topPoints(channel string) *tmi.OutgoingMessage {
 	replychan := make(chan StorageResponse)
 
 	select {
-	case stoargeReqChannel <- StorageRequest{
+	case pm.storageReqChannel <- StorageRequest{
 		Action:      ActionTop,
 		ChannelName: channel,
 		ReplyChan:   replychan,

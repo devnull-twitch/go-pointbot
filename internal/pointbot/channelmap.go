@@ -24,10 +24,6 @@ type (
 		Points      int
 		ReplyChan   chan StorageResponse
 	}
-	channelBlock struct {
-		Name   string
-		Points map[string]int
-	}
 	Storage struct {
 		conn *pgx.Conn
 	}
