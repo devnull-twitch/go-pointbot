@@ -53,6 +53,10 @@ func NewStorage(conn *pgx.Conn) chan<- StorageRequest {
 
 		for {
 			req := <-reqs
+			logrus.WithFields(logrus.Fields{
+				"action":  req.Action,
+				"channel": fmt.Sprintf("%s %s", req.ChannelName, req.Token),
+			}).Info("storage request fetched")
 
 			switch req.Action {
 			case ActionJoin:
