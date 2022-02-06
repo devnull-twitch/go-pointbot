@@ -215,7 +215,7 @@ func (s *Storage) getChannelId(req StorageRequest) (int64, bool) {
 		return cid, true
 	}
 
-	cid, err := s.getChannelIdByToken(req.ChannelName)
+	cid, err := s.getChannelIdByToken(req.Token)
 	if err != nil {
 		logrus.WithFields(logrus.Fields{
 			"error": err,
