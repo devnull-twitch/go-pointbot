@@ -329,15 +329,38 @@ func (s *Storage) ListPoints(cid int64, limit int) []StorageResponse {
 }
 
 func (s *Storage) AddPPC(cid int64, username string) error {
-	_, err := s.conn.Exec(
+	cmd, err := s.conn.Exec(
 		context.Background(),
-		"UPDATE users SET points = points + points_per_chat FROM channels WHERE channels.id = $1 AND users.channel_id = $1 AND users.username = $2",
+		`UPDATE users SET 
+			last_activity = current_timestamp,
+			points = points + points_per_chat FROM channels 
+		WHERE channels.id = $1 AND users.channel_id = $1 AND users.username = $2`,
 		cid,
 		username,
 	)
 	if err != nil {
 		return fmt.Errorf("unable to delete user data: %w", err)
 	}
+
+	if cmd.RowsAffected() <= 0 {
+		row := s.conn.QueryRow(context.Background(), "SELECT points_per_chat FROM channels WHERE id = $1", cid)
+		var ppc int64
+		if err := row.Scan(&ppc); err != nil {
+			return fmt.Errorf("unable to load ppc: %w", err)
+		}
+
+		s.conn.Exec(
+			context.Background(),
+			"INSERT INTO users ( channel_id, username, points ) VALUES ( $1, $2, $3 )",
+			cid,
+			username,
+			ppc,
+		)
+		if err != nil {
+			return fmt.Errorf("unable to insert user data: %w", err)
+		}
+	}
+
 	logrus.WithFields(logrus.Fields{
 		"cid":  cid,
 		"user": username,
