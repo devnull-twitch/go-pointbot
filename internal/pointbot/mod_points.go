@@ -2,6 +2,7 @@ package pointbot
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"strconv"
 	"time"
@@ -211,6 +212,12 @@ func (pm *pointModule) giftPoints(channel, providerUsername, receiverUsername, s
 		}
 	}
 
+	wasNegative := false
+	if points <= 0 {
+		wasNegative = true
+		points = int(math.Abs(float64(points)))
+	}
+
 	replychan := make(chan StorageResponse)
 	select {
 	case pm.storageReqChannel <- StorageRequest{
@@ -233,8 +240,12 @@ func (pm *pointModule) giftPoints(channel, providerUsername, receiverUsername, s
 	}
 
 	if response.Points < int64(points) {
-		return &tmi.OutgoingMessage{
-			Message: "You do not have enough points NotLikeThis",
+		if wasNegative {
+			points = int(response.Points)
+		} else {
+			return &tmi.OutgoingMessage{
+				Message: "You do not have enough points NotLikeThis",
+			}
 		}
 	}
 
@@ -248,6 +259,12 @@ func (pm *pointModule) giftPoints(channel, providerUsername, receiverUsername, s
 	case <-time.After(time.Second):
 		logrus.Error("storage request timed out")
 		return nil
+	}
+
+	if wasNegative {
+		return &tmi.OutgoingMessage{
+			Message: fmt.Sprintf("Trashed %d points from %s", points, providerUsername),
+		}
 	}
 
 	select {
