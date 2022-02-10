@@ -65,6 +65,8 @@ func PointModuleCommand() tmi.ModuleCommand {
 				switch args.Parameters["sub"] {
 				case "top":
 					return pm.topPoints(args.Channel)
+				case "gift":
+					return pm.giftPoints(args.Channel, args.Username, args.Parameters["user"], args.Parameters["points"])
 				}
 
 				return &tmi.OutgoingMessage{Message: "Unknown sub command"}
@@ -198,5 +200,69 @@ func (pm *pointModule) topPoints(channel string) *tmi.OutgoingMessage {
 
 	return &tmi.OutgoingMessage{
 		Message: fmt.Sprintf("Top scorer is %s with %d points", response.Username, response.Points),
+	}
+}
+
+func (pm *pointModule) giftPoints(channel, providerUsername, receiverUsername, strPoints string) *tmi.OutgoingMessage {
+	points, err := strconv.Atoi(strPoints)
+	if err != nil {
+		return &tmi.OutgoingMessage{
+			Message: "Unable to read points NotLikeThis",
+		}
+	}
+
+	replychan := make(chan StorageResponse)
+	select {
+	case pm.storageReqChannel <- StorageRequest{
+		Action:      ActionGetPoints,
+		ChannelName: channel,
+		Username:    providerUsername,
+		ReplyChan:   replychan,
+	}:
+	case <-time.After(time.Second):
+		logrus.Error("storage request timed out")
+		return nil
+	}
+
+	var response StorageResponse
+	select {
+	case response = <-replychan:
+	case <-time.After(time.Second):
+		logrus.Error("storage response timed out")
+		return nil
+	}
+
+	if response.Points < int64(points) {
+		return &tmi.OutgoingMessage{
+			Message: "You do not have enough points NotLikeThis",
+		}
+	}
+
+	select {
+	case pm.storageReqChannel <- StorageRequest{
+		Action:      ActionSubPoints,
+		ChannelName: channel,
+		Username:    providerUsername,
+		Points:      points,
+	}:
+	case <-time.After(time.Second):
+		logrus.Error("storage request timed out")
+		return nil
+	}
+
+	select {
+	case pm.storageReqChannel <- StorageRequest{
+		Action:      ActionAddPoints,
+		ChannelName: channel,
+		Username:    receiverUsername,
+		Points:      points,
+	}:
+	case <-time.After(time.Second):
+		logrus.Error("storage request timed out")
+		return nil
+	}
+
+	return &tmi.OutgoingMessage{
+		Message: fmt.Sprintf("Transfered %d points from %s to %s", points, providerUsername, receiverUsername),
 	}
 }
