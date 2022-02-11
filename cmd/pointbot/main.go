@@ -34,6 +34,11 @@ func main() {
 	bot.AddModuleCommand(pm, pointbot.PointModuleCommand())
 	bot.AddModuleCommand(pm, pointbot.PPCConfigModuleCommand())
 
+	triviaStoreReqChan := pointbot.NewTriviaStorage(conn)
+	tm := pointbot.TriviaModule(triviaStoreReqChan)
+	bot.AddModule(tm)
+	bot.AddModuleCommand(tm, pointbot.TriviaCommand())
+
 	bot.AddCommand(pointbot.DemoCmd())
 	bot.AfterStartup(func() {
 		channelReply := make(chan pointbot.StorageResponse)
