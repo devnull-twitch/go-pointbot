@@ -51,5 +51,17 @@ spec:
             -
               name: GIN_MODE
               value: release
+            -
+              name: TW_CLIENTID
+              valueFrom:
+                configMapKeyRef:
+                  name: pointbot-config
+                  key: twapi.clientid
+            -
+              name: TW_APP_ACCESS
+              valueFrom:
+                configMapKeyRef:
+                  name: pointbot-config
+                  key: twapi.token
       imagePullSecrets:
         - name: dockerconfigjson-ghcr

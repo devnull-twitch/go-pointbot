@@ -11,6 +11,7 @@ import (
 	"github.com/devnull-twitch/go-tmi"
 	"github.com/jackc/pgx/v4"
 	"github.com/joho/godotenv"
+	"github.com/nicklaw5/helix"
 )
 
 func main() {
@@ -26,6 +27,16 @@ func main() {
 	if err != nil {
 		log.Fatal(fmt.Errorf("unable to connect to IRC: %w", err))
 	}
+
+	client, err := helix.NewClient(&helix.Options{
+		ClientID:       os.Getenv("TW_CLIENTID"),
+		AppAccessToken: os.Getenv("TW_APP_ACCESS"),
+	})
+	if err != nil {
+		log.Fatal("unable to create twitch api client")
+	}
+
+	bot.AddCommand(pointbot.ShoutoutCommand(client))
 
 	storageReqChannel := pointbot.NewStorage(conn)
 

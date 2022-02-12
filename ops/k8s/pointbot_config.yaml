@@ -7,3 +7,5 @@ data:
   bot.token: "change_me_after_deploy"
   bot.command_mark: "!"
   database.url: "postgres://localhost:5432/pointbot"
+  twapi.clientid: ""
+  twapi.token: ""
