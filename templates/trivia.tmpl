@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Trivia for {{.Channel}}</title>    
+    </head>
+    <body>
+        {{if .Message}}
+            <p>{{.Message}}</p>
+        {{end}}
+        <div id="question">
+            <p>{{.Question}}</p>
+            <div id="answers">
+                <p>{{.Answer1}}</p>
+                <p>{{.Answer2}}</p>
+                <p>{{.Answer3}}</p>
+                <p>{{.Answer4}}</p>
+            </div>
+        </div>
+        <script>
+            setInterval(() => {
+                location.reload();
+            }, 2000);
+        </script>
+        <style>
+            #question {
+                position: absolute;
+                left: 50%;
+                transform: translateX(-20vw);
+                width: 40vw;
+                height: 400px;
+                background: rgba(44, 44, 44, 0.699);
+            }
+
+            #question > p {
+                color: aliceblue;
+                font-size: large;
+                margin: 0;
+                padding: 0;
+                text-align: center;
+            }
+
+            #answers {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+            }
+
+            #answers > p {
+                text-align: center;
+                border: 1px solid whitesmoke;
+            }
+        </style>
+    </body>
+</html>

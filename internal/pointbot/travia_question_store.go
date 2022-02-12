@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/sirupsen/logrus"
 )
 
@@ -21,7 +21,7 @@ type (
 	}
 )
 
-func NewTriviaStorage(conn *pgx.Conn) chan<- TriviaQuestionReq {
+func NewTriviaStorage(conn *pgxpool.Pool) chan<- TriviaQuestionReq {
 	requestChan := make(chan TriviaQuestionReq)
 	go func(reqs <-chan TriviaQuestionReq) {
 		for {
@@ -73,7 +73,7 @@ func NewTriviaStorage(conn *pgx.Conn) chan<- TriviaQuestionReq {
 	return requestChan
 }
 
-func getChannelIdByName(conn *pgx.Conn, channelName string) (int64, error) {
+func getChannelIdByName(conn *pgxpool.Pool, channelName string) (int64, error) {
 	channelrow := conn.QueryRow(context.Background(), "SELECT id FROM channels WHERE channel_name = $1", channelName)
 	var channelID int64
 	if err := channelrow.Scan(&channelID); err != nil {

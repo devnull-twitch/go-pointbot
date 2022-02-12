@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/sirupsen/logrus"
 )
 
@@ -25,7 +25,7 @@ type (
 		ReplyChan   chan StorageResponse
 	}
 	Storage struct {
-		conn *pgx.Conn
+		conn *pgxpool.Pool
 	}
 )
 
@@ -42,7 +42,7 @@ const (
 	ActionSetPPC
 )
 
-func NewStorage(conn *pgx.Conn) chan<- StorageRequest {
+func NewStorage(conn *pgxpool.Pool) chan<- StorageRequest {
 	requestChan := make(chan StorageRequest)
 	go func(reqs <-chan StorageRequest) {
 		s := &Storage{
