@@ -43,6 +43,7 @@ func main() {
 	bot.AddModule(pm)
 	bot.AddModuleCommand(pm, pointbot.PointModuleCommand())
 	bot.AddModuleCommand(pm, pointbot.PPCConfigModuleCommand())
+	bot.AddModuleCommand(pm, pointbot.LeaderboardCommand())
 
 	triviaStoreReqChan := pointbot.NewTriviaStorage(conn)
 	tm := pointbot.TriviaModule(triviaStoreReqChan)

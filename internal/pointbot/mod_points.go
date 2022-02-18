@@ -12,6 +12,7 @@ import (
 )
 
 type pointModule struct {
+	lastLeaderboard   time.Time
 	storageReqChannel chan<- StorageRequest
 }
 
@@ -39,6 +40,69 @@ func (pm *pointModule) Handler(client *tmi.Client, args tmi.ModuleArgs) *tmi.Out
 func PointModule(storageReqChannel chan<- StorageRequest) tmi.Module {
 	return &pointModule{
 		storageReqChannel: storageReqChannel,
+		lastLeaderboard:   time.Now().Add(-(time.Minute * 5)),
+	}
+}
+
+func LeaderboardCommand() tmi.ModuleCommand {
+	defaultLength := "3"
+	return tmi.ModuleCommand{
+		ModuleCommandHandler: func(client *tmi.Client, m tmi.Module, args tmi.CommandArgs) *tmi.OutgoingMessage {
+			pm := m.(*pointModule)
+			if pm.lastLeaderboard.After(time.Now().Add(-(time.Minute))) {
+				logrus.Info("no spwam leaderboard")
+				return nil
+			}
+			pm.lastLeaderboard = time.Now()
+
+			replyChan := make(chan StorageResponse)
+			select {
+			case pm.storageReqChannel <- StorageRequest{
+				Action:      ActionList,
+				ChannelName: args.Channel,
+				ReplyChan:   replyChan,
+			}:
+			case <-time.After(time.Second):
+			}
+
+			max := 3
+			userm, err := strconv.Atoi(args.Parameters["length"])
+			if err == nil && userm < 5 {
+				max = userm
+			}
+
+			var i int
+			goon := true
+			for goon {
+				select {
+				case r, ok := <-replyChan:
+					if !ok {
+						goon = false
+						break
+					}
+
+					if i+1 <= max {
+						client.Send(&tmi.OutgoingMessage{
+							Channel: args.Channel,
+							Message: fmt.Sprintf("%d) %d points %s", i+1, r.Points, r.Username),
+						})
+					}
+					i++
+
+				case <-time.After(time.Second):
+					goon = false
+				}
+			}
+
+			return nil
+		},
+		Command: tmi.Command{
+			Name:        "leaderboard",
+			Description: "Show top 3",
+			Params: []tmi.Parameter{
+				{Name: "length", Default: &defaultLength},
+			},
+		},
 	}
 }
 
