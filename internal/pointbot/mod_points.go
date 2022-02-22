@@ -44,11 +44,11 @@ func PointModule(storageReqChannel chan<- StorageRequest) tmi.Module {
 	}
 }
 
-func LeaderboardCommand() tmi.ModuleCommand {
+func LeaderboardCommand(m tmi.Module) tmi.Command {
+	pm := m.(*pointModule)
 	defaultLength := "3"
-	return tmi.ModuleCommand{
-		ModuleCommandHandler: func(client *tmi.Client, m tmi.Module, args tmi.CommandArgs) *tmi.OutgoingMessage {
-			pm := m.(*pointModule)
+	return tmi.Command{
+		Handler: func(client *tmi.Client, args tmi.CommandArgs) *tmi.OutgoingMessage {
 			if pm.lastLeaderboard.After(time.Now().Add(-(time.Minute))) {
 				logrus.Info("no spwam leaderboard")
 				return nil
@@ -96,20 +96,18 @@ func LeaderboardCommand() tmi.ModuleCommand {
 
 			return nil
 		},
-		Command: tmi.Command{
-			Name:        "leaderboard",
-			Description: "Show top 3",
-			Params: []tmi.Parameter{
-				{Name: "length", Default: &defaultLength},
-			},
+		Name:        "leaderboard",
+		Description: "Show top 3",
+		Params: []tmi.Parameter{
+			{Name: "length", Default: &defaultLength},
 		},
 	}
 }
 
-func PointModuleCommand() tmi.ModuleCommand {
-	return tmi.ModuleCommand{
-		ModuleCommandHandler: func(client *tmi.Client, m tmi.Module, args tmi.CommandArgs) *tmi.OutgoingMessage {
-			pm := m.(*pointModule)
+func PointModuleCommand(m tmi.Module) tmi.Command {
+	pm := m.(*pointModule)
+	return tmi.Command{
+		Handler: func(client *tmi.Client, args tmi.CommandArgs) *tmi.OutgoingMessage {
 			if args.Parameters["sub"] != "" {
 				if args.Mod || args.Broadcaster {
 					switch args.Parameters["sub"] {
@@ -139,14 +137,12 @@ func PointModuleCommand() tmi.ModuleCommand {
 
 			return pm.getPoints(args.Channel, args.Username)
 		},
-		Command: tmi.Command{
-			Name:        "points",
-			Description: "Interact with points",
-			Params: []tmi.Parameter{
-				{Name: "sub"},
-				{Name: "user"},
-				{Name: "points"},
-			},
+		Name:        "points",
+		Description: "Interact with points",
+		Params: []tmi.Parameter{
+			{Name: "sub"},
+			{Name: "user"},
+			{Name: "points"},
 		},
 	}
 }

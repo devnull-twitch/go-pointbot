@@ -9,20 +9,19 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func PPCConfigModuleCommand() tmi.ModuleCommand {
-	return tmi.ModuleCommand{
-		Command: tmi.Command{
-			Name:        "ppc",
-			Description: "Allows mods to set the points per chat",
-			Params: []tmi.Parameter{
-				{
-					Name:     "value",
-					Required: true,
-				},
+func PPCConfigModuleCommand(m tmi.Module) tmi.Command {
+	pm := m.(*pointModule)
+	return tmi.Command{
+		Name:        "ppc",
+		Description: "Allows mods to set the points per chat",
+		Params: []tmi.Parameter{
+			{
+				Name:     "value",
+				Required: true,
 			},
-			RequiresBroadcasterOrMod: true,
 		},
-		ModuleCommandHandler: func(client *tmi.Client, m tmi.Module, args tmi.CommandArgs) *tmi.OutgoingMessage {
+		RequiresBroadcasterOrMod: true,
+		Handler: func(client *tmi.Client, args tmi.CommandArgs) *tmi.OutgoingMessage {
 			points, err := strconv.Atoi(args.Parameters["value"])
 			if err != nil {
 				return &tmi.OutgoingMessage{
@@ -30,7 +29,6 @@ func PPCConfigModuleCommand() tmi.ModuleCommand {
 				}
 			}
 
-			pm := m.(*pointModule)
 			pm.storageReqChannel <- StorageRequest{
 				Action:      ActionSetPPC,
 				ChannelName: args.Channel,

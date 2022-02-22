@@ -26,11 +26,20 @@ func (tm *trviaModule) Handler(client *tmi.Client, args tmi.ModuleArgs) *tmi.Out
 	return nil
 }
 
-func TriviaCommand() tmi.ModuleCommand {
+func TriviaCommand(m tmi.Module) tmi.Command {
 	emptyStr := ""
-	return tmi.ModuleCommand{
-		ModuleCommandHandler: func(client *tmi.Client, m tmi.Module, args tmi.CommandArgs) *tmi.OutgoingMessage {
-			tm := m.(*trviaModule)
+	tm := m.(*trviaModule)
+	return tmi.Command{
+		Name:        "trivia",
+		Description: "Add trivia questions",
+		Params: []tmi.Parameter{
+			{Name: "question", Required: true},
+			{Name: "correct", Required: true},
+			{Name: "wrong1", Default: &emptyStr},
+			{Name: "wrong2", Default: &emptyStr},
+			{Name: "wrong3", Default: &emptyStr},
+		},
+		Handler: func(client *tmi.Client, args tmi.CommandArgs) *tmi.OutgoingMessage {
 			tm.storage <- TriviaQuestionReq{
 				ChannelName:   args.Channel,
 				Username:      args.Username,
@@ -43,17 +52,6 @@ func TriviaCommand() tmi.ModuleCommand {
 			return &tmi.OutgoingMessage{
 				Message: "Thanks SeemsGood",
 			}
-		},
-		Command: tmi.Command{
-			Name:        "trivia",
-			Description: "Add trivia questions",
-			Params: []tmi.Parameter{
-				{Name: "question", Required: true},
-				{Name: "correct", Required: true},
-				{Name: "wrong1", Default: &emptyStr},
-				{Name: "wrong2", Default: &emptyStr},
-				{Name: "wrong3", Default: &emptyStr},
-			},
 		},
 	}
 }

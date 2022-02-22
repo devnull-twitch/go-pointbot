@@ -41,14 +41,19 @@ func main() {
 
 	pm := pointbot.PointModule(storageReqChannel)
 	bot.AddModule(pm)
-	bot.AddModuleCommand(pm, pointbot.PointModuleCommand())
-	bot.AddModuleCommand(pm, pointbot.PPCConfigModuleCommand())
-	bot.AddModuleCommand(pm, pointbot.LeaderboardCommand())
+	bot.AddCommand(pointbot.PointModuleCommand(pm))
+	bot.AddCommand(pointbot.PPCConfigModuleCommand(pm))
+	bot.AddCommand(pointbot.LeaderboardCommand(pm))
 
 	triviaStoreReqChan := pointbot.NewTriviaStorage(conn)
 	tm := pointbot.TriviaModule(triviaStoreReqChan)
 	bot.AddModule(tm)
-	bot.AddModuleCommand(tm, pointbot.TriviaCommand())
+	bot.AddCommand(pointbot.TriviaCommand(tm))
+
+	gambling := pointbot.GamblingModule(bot, storageReqChannel)
+	bot.AddModule(gambling)
+	bot.AddCommand(pointbot.GamblingAdminCommand(gambling))
+	bot.AddCommand(pointbot.GamblingUserCommand(gambling))
 
 	bot.AddCommand(pointbot.DemoCmd())
 	bot.AfterStartup(func() {
