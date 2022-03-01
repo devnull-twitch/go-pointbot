@@ -5,10 +5,14 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
+	"github.com/devnull-twitch/go-pointbot/internal/overlay"
 	"github.com/devnull-twitch/go-pointbot/internal/pointbot"
 	"github.com/devnull-twitch/go-pointbot/internal/pointbot/api"
 	"github.com/devnull-twitch/go-tmi"
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/joho/godotenv"
 	"github.com/nicklaw5/helix"
@@ -68,7 +72,30 @@ func main() {
 		}
 	})
 
-	go api.Run(bot, storageReqChannel, conn)
+	r := gin.Default()
+
+	r.FuncMap["inc"] = func(v int) int {
+		return v + 1
+	}
+
+	r.SetTrustedProxies(nil)
+	r.LoadHTMLGlob(os.Getenv("OVERLAY_TPL_DIR") + "/**.html.tmpl")
+
+	corsMiddleware := cors.New(cors.Config{
+		AllowOrigins:     []string{"*"},
+		AllowWildcard:    true,
+		AllowMethods:     []string{"PUT", "POST", "GET"},
+		AllowCredentials: true,
+		AllowOriginFunc: func(origin string) bool {
+			return true
+		},
+		MaxAge: 12 * time.Hour,
+	})
+	baseGroup := r.Group("/bot", corsMiddleware)
+	api.Setup(baseGroup, bot, storageReqChannel, conn)
+	overlay.Setup(baseGroup, conn)
+
+	go r.Run(os.Getenv("WEBADDRESS"))
 
 	if err := bot.Run(); err != nil {
 		log.Fatal(err)

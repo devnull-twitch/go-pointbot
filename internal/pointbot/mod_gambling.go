@@ -359,8 +359,6 @@ func (gm *gamblingMod) poolMethodResult(currentBet *gamblingBet, args tmi.Comman
 		}
 	}
 
-	fmt.Println(winnerpoints, loserPoints)
-
 	for username, basePoints := range winners {
 		userWinnings := (currentBet.wagers[username].value / winnerpoints) * loserPoints
 		select {
@@ -412,6 +410,5 @@ func (gm *gamblingMod) multiMethodResult(currentBet *gamblingBet, args tmi.Comma
 		}
 	}
 
-	fmt.Println("multiMethodResult done")
 	return nil
 }

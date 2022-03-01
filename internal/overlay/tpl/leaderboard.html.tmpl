@@ -1,0 +1,24 @@
+{{ define "leaderboard" }}
+    <table class="table-fixed w-56">
+        <thead>
+            <tr>
+                <th class="w-5 py-1 pl-1">#</th>
+                <th class="text-left py-1">User</th>
+                <th class="text-right py-1 pr-2">Point</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{range $pos, $elem := .Positions}}
+                <tr>
+                    <td class="py-1 pl-1">{{inc $pos}}</td>
+                    <td class="py-1">{{$elem.Name}}</td>
+                    <td class="text-right py-1 pr-2">{{$elem.Points}}</td>
+                </tr>
+            {{end}}
+        </tbody>
+    </table>
+{{ end }}
+
+{{ define "top_points" }}
+    <p class="p-2">Most points: {{.Name}} with {{.Points}} points</p>
+{{ end }}
