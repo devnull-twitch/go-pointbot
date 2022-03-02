@@ -89,7 +89,7 @@ func GamblingUserCommand(m tmi.Module) tmi.Command {
 			if currentBet == nil {
 				return &tmi.OutgoingMessage{
 					Channel: args.Channel,
-					Message: "No active bet BibleThumb",
+					Message: "No active bet BibleThump",
 				}
 			}
 
