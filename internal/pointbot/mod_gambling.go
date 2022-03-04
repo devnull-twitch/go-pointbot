@@ -363,6 +363,11 @@ func (gm *gamblingMod) poolMethodResult(currentBet *gamblingBet, args tmi.Comman
 		}
 	}
 
+	logrus.WithFields(logrus.Fields{
+		"total_winner": winnerpoints,
+		"total_loser":  loserPoints,
+	}).Info("betting finished")
+
 	for username, basePoints := range winners {
 		userWinnings := (currentBet.wagers[username].value / winnerpoints) * loserPoints
 
