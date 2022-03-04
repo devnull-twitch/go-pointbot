@@ -305,6 +305,10 @@ func (gm *gamblingMod) cancelBet(args tmi.CommandArgs) *tmi.OutgoingMessage {
 }
 
 func (gm *gamblingMod) setResult(args tmi.CommandArgs) *tmi.OutgoingMessage {
+	defer func() {
+		delete(gm.runningBets, args.Channel)
+	}()
+
 	currentBet := gm.runningBets[args.Channel]
 	if currentBet == nil {
 		return &tmi.OutgoingMessage{
@@ -359,10 +363,15 @@ func (gm *gamblingMod) poolMethodResult(currentBet *gamblingBet, args tmi.Comman
 		}
 	}
 
-	fmt.Println(winnerpoints, loserPoints)
-
 	for username, basePoints := range winners {
 		userWinnings := (currentBet.wagers[username].value / winnerpoints) * loserPoints
+
+		logrus.WithFields(logrus.Fields{
+			"user":     username,
+			"wager":    currentBet.wagers[username].value,
+			"winnings": userWinnings,
+		}).Info("distributing betting winning")
+
 		select {
 		case gm.storageReqChannel <- StorageRequest{
 			Action:      ActionAddPoints,
