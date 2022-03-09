@@ -8,7 +8,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func ShoutoutCommand(twClient *helix.Client) tmi.Command {
+func ShoutoutCommand(twClient *helix.Client, ffc FeatureFlagChecker) tmi.Command {
 	return tmi.Command{
 		Name:        "so",
 		Description: "Shoutout other streamer",
@@ -17,6 +17,7 @@ func ShoutoutCommand(twClient *helix.Client) tmi.Command {
 		},
 		RequiresBroadcasterOrMod: true,
 		AllowRestParams:          false,
+		AcceptanceCheck:          ffc.FeatureFlagAccptanceCheck,
 		Handler: func(client *tmi.Client, args tmi.CommandArgs) *tmi.OutgoingMessage {
 			userListResp, err := twClient.GetUsers(&helix.UsersParams{
 				Logins: []string{args.Parameters["username"]},

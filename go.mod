@@ -2,10 +2,8 @@ module github.com/devnull-twitch/go-pointbot
 
 go 1.17
 
-replace github.com/devnull-twitch/go-tmi => ../go-tmi
-
 require (
-	github.com/devnull-twitch/go-tmi v0.0.0-20220309175057-e9475a5a2464
+	github.com/devnull-twitch/go-tmi v0.0.0-20220309211532-e5cd7273d466
 	github.com/gin-contrib/cors v1.3.1
 	github.com/gin-gonic/gin v1.7.7
 	github.com/jackc/pgx/v4 v4.15.0

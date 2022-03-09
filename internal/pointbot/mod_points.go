@@ -104,7 +104,7 @@ func LeaderboardCommand(m tmi.Module) tmi.Command {
 	}
 }
 
-func PointModuleCommand(m tmi.Module) tmi.Command {
+func PointModuleCommand(m tmi.Module, ffc FeatureFlagChecker) tmi.Command {
 	pm := m.(*pointModule)
 	return tmi.Command{
 		Handler: func(client *tmi.Client, args tmi.CommandArgs) *tmi.OutgoingMessage {
@@ -137,8 +137,9 @@ func PointModuleCommand(m tmi.Module) tmi.Command {
 
 			return pm.getPoints(args.Channel, args.Username)
 		},
-		Name:        "points",
-		Description: "Interact with points",
+		Name:            "points",
+		Description:     "Interact with points",
+		AcceptanceCheck: ffc.FeatureFlagAccptanceCheck,
 		Params: []tmi.Parameter{
 			{Name: "sub"},
 			{Name: "user"},

@@ -35,13 +35,16 @@ func main() {
 		log.Fatal("unable to create twitch api client")
 	}
 
-	bot.AddCommand(pointbot.ShoutoutCommand(client))
+	ffc := pointbot.NewFeatureFlagChecker(conn)
+	bot.AddCommand(pointbot.FeatureFlagAdminCommand(conn))
+
+	bot.AddCommand(pointbot.ShoutoutCommand(client, ffc))
 
 	storageReqChannel := pointbot.NewStorage(conn)
 
 	pm := pointbot.PointModule(storageReqChannel)
 	bot.AddModule(pm)
-	bot.AddCommand(pointbot.PointModuleCommand(pm))
+	bot.AddCommand(pointbot.PointModuleCommand(pm, ffc))
 	bot.AddCommand(pointbot.PPCConfigModuleCommand(pm))
 	bot.AddCommand(pointbot.LeaderboardCommand(pm))
 
