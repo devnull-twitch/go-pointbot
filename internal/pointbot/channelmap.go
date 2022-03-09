@@ -21,6 +21,7 @@ type (
 		ChannelName string
 		Token       string
 		Username    string
+		Subscriber  bool
 		Points      int
 		ReplyChan   chan StorageResponse
 	}
@@ -161,7 +162,7 @@ func NewStorage(conn *pgxpool.Pool) chan<- StorageRequest {
 				if !ok {
 					continue
 				}
-				if err := s.AddPPC(cid, req.Username); err != nil {
+				if err := s.AddPPC(cid, req.Username, req.Subscriber); err != nil {
 					logrus.WithError(err).Error("unable to add PPC")
 				}
 
@@ -328,13 +329,17 @@ func (s *Storage) ListPoints(cid int64, limit int) []StorageResponse {
 	return response
 }
 
-func (s *Storage) AddPPC(cid int64, username string) error {
+func (s *Storage) AddPPC(cid int64, username string, subscriber bool) error {
+	pointUpdtStmt := "points = points + points_per_chat FROM channels "
+	if subscriber {
+		pointUpdtStmt = "points = points + subscriber_points_per_chat FROM channels "
+	}
 	cmd, err := s.conn.Exec(
 		context.Background(),
-		`UPDATE users SET 
+		fmt.Sprintf(`UPDATE users SET 
 			last_activity = current_timestamp,
-			points = points + points_per_chat FROM channels 
-		WHERE channels.id = $1 AND users.channel_id = $1 AND users.username = $2`,
+			%s
+		WHERE channels.id = $1 AND users.channel_id = $1 AND users.username = $2`, pointUpdtStmt),
 		cid,
 		username,
 	)
@@ -343,10 +348,18 @@ func (s *Storage) AddPPC(cid int64, username string) error {
 	}
 
 	if cmd.RowsAffected() <= 0 {
-		row := s.conn.QueryRow(context.Background(), "SELECT points_per_chat FROM channels WHERE id = $1", cid)
-		var ppc int64
-		if err := row.Scan(&ppc); err != nil {
+		row := s.conn.QueryRow(context.Background(), "SELECT points_per_chat, subscriber_points_per_chat FROM channels WHERE id = $1", cid)
+		var (
+			ppc           int64
+			subscriberPPC int64
+		)
+		if err := row.Scan(&ppc, &subscriberPPC); err != nil {
 			return fmt.Errorf("unable to load ppc: %w", err)
+		}
+
+		initialPoints := ppc
+		if subscriber {
+			initialPoints = subscriberPPC
 		}
 
 		s.conn.Exec(
@@ -354,7 +367,7 @@ func (s *Storage) AddPPC(cid int64, username string) error {
 			"INSERT INTO users ( channel_id, username, points ) VALUES ( $1, $2, $3 )",
 			cid,
 			username,
-			ppc,
+			initialPoints,
 		)
 		if err != nil {
 			return fmt.Errorf("unable to insert user data: %w", err)

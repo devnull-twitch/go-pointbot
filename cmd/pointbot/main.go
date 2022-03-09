@@ -57,6 +57,10 @@ func main() {
 
 	bot.AddCommand(pointbot.StopwatchCommand())
 
+	reminderModule := pointbot.ReminderMod(bot, conn, client)
+	bot.AddModule(reminderModule)
+	bot.AddCommand(pointbot.ReminderCommand(reminderModule))
+
 	bot.AddCommand(pointbot.DemoCmd())
 	bot.AfterStartup(func() {
 		channelReply := make(chan pointbot.StorageResponse)
