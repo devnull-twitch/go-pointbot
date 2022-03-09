@@ -55,6 +55,8 @@ func main() {
 	bot.AddCommand(pointbot.GamblingAdminCommand(gambling))
 	bot.AddCommand(pointbot.GamblingUserCommand(gambling))
 
+	bot.AddCommand(pointbot.StopwatchCommand())
+
 	bot.AddCommand(pointbot.DemoCmd())
 	bot.AfterStartup(func() {
 		channelReply := make(chan pointbot.StorageResponse)
