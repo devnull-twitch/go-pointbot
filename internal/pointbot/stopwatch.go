@@ -73,6 +73,8 @@ func startStopwatch(args tmi.CommandArgs) *tmi.OutgoingMessage {
 }
 
 func stopStopwatch(args tmi.CommandArgs) *tmi.OutgoingMessage {
+	updatedList := make([]stopwatchUserInfo, 0, len(playerCache[args.Username]))
+	var outMsg *tmi.OutgoingMessage
 	for _, info := range playerCache[args.Username] {
 		if info.Channel == args.Channel {
 			if !info.Running {
@@ -80,11 +82,20 @@ func stopStopwatch(args tmi.CommandArgs) *tmi.OutgoingMessage {
 			}
 
 			dur := time.Since(info.LastStart)
-			return &tmi.OutgoingMessage{
+			info.Running = false
+			outMsg = &tmi.OutgoingMessage{
 				Channel: args.Channel,
 				Message: fmt.Sprintf("Stopped after %s", dur),
 			}
 		}
+
+		updatedList = append(updatedList, info)
+	}
+
+	playerCache[args.Username] = updatedList
+
+	if outMsg != nil {
+		return outMsg
 	}
 
 	return nil
