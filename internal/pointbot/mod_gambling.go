@@ -296,11 +296,24 @@ func (gm *gamblingMod) cancelBet(args tmi.CommandArgs) *tmi.OutgoingMessage {
 		}
 	}
 
+	for username, w := range currentBet.wagers {
+		select {
+		case gm.storageReqChannel <- StorageRequest{
+			Action:      ActionAddPoints,
+			ChannelName: args.Channel,
+			Username:    username,
+			Points:      w.value,
+		}:
+		case <-time.After(time.Second * 2):
+			logrus.Error("store request timeout")
+		}
+	}
+
 	delete(gm.runningBets, args.Channel)
 
 	return &tmi.OutgoingMessage{
 		Channel: args.Channel,
-		Message: "Ok, cancelled!",
+		Message: "Ok, cancelled! Everyone gets their wagers back.",
 	}
 }
 
