@@ -149,12 +149,6 @@ func PointModuleCommand(m tmi.Module, ffc FeatureFlagChecker) tmi.Command {
 }
 
 func (pm *pointModule) getPoints(channel, username string) *tmi.OutgoingMessage {
-	if username == "iamdevnull" {
-		return &tmi.OutgoingMessage{
-			Message: "That is a secret...",
-		}
-	}
-
 	replychan := make(chan StorageResponse)
 
 	select {
