@@ -50,7 +50,7 @@ func ShoutoutCommand(twClient *helix.Client, ffc FeatureFlagChecker) tmi.Command
 			channel := channelResp.Data.Channels[0]
 			return &tmi.OutgoingMessage{
 				Message: fmt.Sprintf(
-					"Check Out %s! Last streamed %s in %s - https://www.twitch.tv/%s",
+					"Check Out %s! Last streamed \"%s\" in %s - https://www.twitch.tv/%s",
 					channel.BroadcasterName,
 					channel.Title,
 					channel.GameName,
