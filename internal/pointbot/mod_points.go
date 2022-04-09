@@ -16,7 +16,7 @@ type pointModule struct {
 	storageReqChannel chan<- StorageRequest
 }
 
-func (_ *pointModule) ExternalTrigger(_ *tmi.Client) <-chan *tmi.ModuleArgs {
+func (*pointModule) ExternalTrigger(_ *tmi.Client) <-chan *tmi.ModuleArgs {
 	return nil
 }
 
@@ -33,7 +33,7 @@ func (pm *pointModule) MessageTrigger(_ *tmi.Client, incoming *tmi.IncomingMessa
 	return nil
 }
 
-func (_ *pointModule) Handler(_ *tmi.Client, _ tmi.ModuleArgs) *tmi.OutgoingMessage {
+func (*pointModule) Handler(_ *tmi.Client, _ tmi.ModuleArgs) *tmi.OutgoingMessage {
 	return nil
 }
 

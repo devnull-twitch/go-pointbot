@@ -30,7 +30,7 @@ func ReminderMod(client *tmi.Client, conn *pgxpool.Pool, twClient *helix.Client)
 	return mod
 }
 
-func (_ *reminderMod) ExternalTrigger(_ *tmi.Client) <-chan *tmi.ModuleArgs {
+func (*reminderMod) ExternalTrigger(_ *tmi.Client) <-chan *tmi.ModuleArgs {
 	moduleTrigger := make(chan *tmi.ModuleArgs)
 	go func() {
 		ticker := time.NewTicker(time.Minute)

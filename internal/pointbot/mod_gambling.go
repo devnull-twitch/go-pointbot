@@ -53,15 +53,15 @@ func GamblingModule(client *tmi.Client, storageReqChannel chan<- StorageRequest)
 	return mod
 }
 
-func (_ *gamblingMod) ExternalTrigger(_ *tmi.Client) <-chan *tmi.ModuleArgs {
+func (*gamblingMod) ExternalTrigger(_ *tmi.Client) <-chan *tmi.ModuleArgs {
 	return nil
 }
 
-func (_ *gamblingMod) Handler(_ *tmi.Client, _ tmi.ModuleArgs) *tmi.OutgoingMessage {
+func (*gamblingMod) Handler(_ *tmi.Client, _ tmi.ModuleArgs) *tmi.OutgoingMessage {
 	return nil
 }
 
-func (_ *gamblingMod) MessageTrigger(_ *tmi.Client, _ *tmi.IncomingMessage) *tmi.ModuleArgs {
+func (*gamblingMod) MessageTrigger(_ *tmi.Client, _ *tmi.IncomingMessage) *tmi.ModuleArgs {
 	return nil
 }
 
