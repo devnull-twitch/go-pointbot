@@ -53,15 +53,15 @@ func GamblingModule(client *tmi.Client, storageReqChannel chan<- StorageRequest)
 	return mod
 }
 
-func (pm *gamblingMod) ExternalTrigger(client *tmi.Client) <-chan *tmi.ModuleArgs {
+func (_ *gamblingMod) ExternalTrigger(_ *tmi.Client) <-chan *tmi.ModuleArgs {
 	return nil
 }
 
-func (pm *gamblingMod) Handler(client *tmi.Client, args tmi.ModuleArgs) *tmi.OutgoingMessage {
+func (_ *gamblingMod) Handler(_ *tmi.Client, _ tmi.ModuleArgs) *tmi.OutgoingMessage {
 	return nil
 }
 
-func (pm *gamblingMod) MessageTrigger(client *tmi.Client, incoming *tmi.IncomingMessage) *tmi.ModuleArgs {
+func (_ *gamblingMod) MessageTrigger(_ *tmi.Client, _ *tmi.IncomingMessage) *tmi.ModuleArgs {
 	return nil
 }
 
@@ -439,6 +439,5 @@ func (gm *gamblingMod) multiMethodResult(currentBet *gamblingBet, args tmi.Comma
 		}
 	}
 
-	fmt.Println("multiMethodResult done")
 	return nil
 }

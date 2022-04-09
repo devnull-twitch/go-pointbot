@@ -14,15 +14,15 @@ func TriviaModule(storageReqChannel chan<- TriviaQuestionReq) tmi.Module {
 	}
 }
 
-func (tm *trviaModule) ExternalTrigger(client *tmi.Client) <-chan *tmi.ModuleArgs {
+func (_ *trviaModule) ExternalTrigger(_ *tmi.Client) <-chan *tmi.ModuleArgs {
 	return nil
 }
 
-func (tm *trviaModule) MessageTrigger(client *tmi.Client, incoming *tmi.IncomingMessage) *tmi.ModuleArgs {
+func (_ *trviaModule) MessageTrigger(_ *tmi.Client, _ *tmi.IncomingMessage) *tmi.ModuleArgs {
 	return nil
 }
 
-func (tm *trviaModule) Handler(client *tmi.Client, args tmi.ModuleArgs) *tmi.OutgoingMessage {
+func (_ *trviaModule) Handler(_ *tmi.Client, _ tmi.ModuleArgs) *tmi.OutgoingMessage {
 	return nil
 }
 

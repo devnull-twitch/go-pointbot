@@ -16,11 +16,11 @@ type pointModule struct {
 	storageReqChannel chan<- StorageRequest
 }
 
-func (pm *pointModule) ExternalTrigger(client *tmi.Client) <-chan *tmi.ModuleArgs {
+func (_ *pointModule) ExternalTrigger(_ *tmi.Client) <-chan *tmi.ModuleArgs {
 	return nil
 }
 
-func (pm *pointModule) MessageTrigger(client *tmi.Client, incoming *tmi.IncomingMessage) *tmi.ModuleArgs {
+func (pm *pointModule) MessageTrigger(_ *tmi.Client, incoming *tmi.IncomingMessage) *tmi.ModuleArgs {
 	if incoming.Message[0:1] == os.Getenv("COMMAND_MARK") {
 		return nil
 	}
@@ -33,7 +33,7 @@ func (pm *pointModule) MessageTrigger(client *tmi.Client, incoming *tmi.Incoming
 	return nil
 }
 
-func (pm *pointModule) Handler(client *tmi.Client, args tmi.ModuleArgs) *tmi.OutgoingMessage {
+func (_ *pointModule) Handler(_ *tmi.Client, _ tmi.ModuleArgs) *tmi.OutgoingMessage {
 	return nil
 }
 

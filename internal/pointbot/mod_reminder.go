@@ -30,7 +30,7 @@ func ReminderMod(client *tmi.Client, conn *pgxpool.Pool, twClient *helix.Client)
 	return mod
 }
 
-func (rm *reminderMod) ExternalTrigger(client *tmi.Client) <-chan *tmi.ModuleArgs {
+func (_ *reminderMod) ExternalTrigger(_ *tmi.Client) <-chan *tmi.ModuleArgs {
 	moduleTrigger := make(chan *tmi.ModuleArgs)
 	go func() {
 		ticker := time.NewTicker(time.Minute)
@@ -42,7 +42,7 @@ func (rm *reminderMod) ExternalTrigger(client *tmi.Client) <-chan *tmi.ModuleArg
 	return moduleTrigger
 }
 
-func (rm *reminderMod) Handler(client *tmi.Client, args tmi.ModuleArgs) *tmi.OutgoingMessage {
+func (rm *reminderMod) Handler(client *tmi.Client, _ tmi.ModuleArgs) *tmi.OutgoingMessage {
 	channelIsLive := map[string]bool{}
 	rows, err := rm.conn.Query(context.Background(), `
 		SELECT c.channel_name, rm.reminder_message
@@ -105,7 +105,7 @@ func (rm *reminderMod) Handler(client *tmi.Client, args tmi.ModuleArgs) *tmi.Out
 
 		if isLive {
 			channelsMessagesSend = append(channelsMessagesSend, channelname)
-			rm.client.Send(&tmi.OutgoingMessage{
+			client.Send(&tmi.OutgoingMessage{
 				Message: message,
 				Channel: channelname,
 			})
@@ -129,7 +129,7 @@ func (rm *reminderMod) Handler(client *tmi.Client, args tmi.ModuleArgs) *tmi.Out
 	return nil
 }
 
-func (rm *reminderMod) MessageTrigger(client *tmi.Client, incoming *tmi.IncomingMessage) *tmi.ModuleArgs {
+func (rm *reminderMod) MessageTrigger(_ *tmi.Client, incoming *tmi.IncomingMessage) *tmi.ModuleArgs {
 	if os.Getenv("USERNAME") != incoming.Username {
 		rm.hadMessages[incoming.Channel] = true
 	}
@@ -248,7 +248,7 @@ func (rm *reminderMod) addReminderMessage(
 	return nil
 }
 
-func (rm *reminderMod) removeReminderMessage(channelName string, message string) error {
+func (rm *reminderMod) removeReminderMessage(channelName, message string) error {
 	channelID, err := getChannelIdByName(rm.conn, channelName)
 	if err != nil {
 		return err
